@@ -30,7 +30,7 @@ const ChatContentScreen = ({ navigation, route }) => {
                       <Icon name="arrow-left" color="gray" size={18} />
                     </View>
                 </TouchableOpacity>
-              ),
+            ),
             headerTitle: () => (
                 <View>
                     <Text style={{ 
@@ -51,6 +51,13 @@ const ChatContentScreen = ({ navigation, route }) => {
                         </Text> : null
                     }
                 </View>
+            ),
+            headerRight: () => (
+                <TouchableOpacity onPress={() => navigation.navigate('VideoCallScreen')}>
+                    <View style={{ marginRight : 10 }}>
+                      <Icon name="video-camera" color="white" size={18} />
+                    </View>
+                </TouchableOpacity>
             ),
         })
 

@@ -6,6 +6,7 @@ import ChatContactScreen from '../screen/chat/ChatContactScreen';
 import ChatContentScreen from '../screen/chat/ChatContentScreen';
 import ViewImageScreen from '../screen/chat/ViewImageScreen';
 import { AuthContext } from '../provider/AuthProvider';
+import VideoCallScreen from '../screen/video-call/VideoCallScreen';
 
 const Stack = createStackNavigator();
 
@@ -41,6 +42,9 @@ const ChatStack = ({navigation}) => {
                 <Stack.Screen name='ChatContactScreen' component={ChatContactScreen} options={{ ...optionsStyle, title: 'List Kontak'}}/>
                 <Stack.Screen name='ChatContentScreen' component={ChatContentScreen} options={{ ...optionsStyle}}/>
                 <Stack.Screen name='ViewImageScreen' component={ViewImageScreen}/>
+                <Stack.Screen name='VideoCallScreen' component={VideoCallScreen} options={{
+                  headerShown: false
+                }}/>
             </Stack.Navigator>
           </ChatProvider>
       )
