@@ -16,16 +16,13 @@ const ChatContactScreen = ({ navigation }) => {
     const getContact = useCallback(async () => {
       await axios({
           method: 'get',
-          url: `${baseUrl}/api/user`,
+          url: `${baseUrl}/api/user/not-admin`,
           headers: {
               Accept: 'aplication/json'
           }
       }).then(res => {
-        if(search !== ''){
-          setContact(res.data.data)
-        }else{
-          setContact(res.data.data)
-        }
+        console.log(res.data.data)
+        setContact(res.data.data)
       }).catch(err => {
           console.log(err)
       })
