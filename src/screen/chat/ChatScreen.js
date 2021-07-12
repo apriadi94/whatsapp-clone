@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, Image, ImageBackground, TextInput } from 
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { ChatContext } from '../../provider/ChatProvider'
 import backgroundChat from '../../assets/chat-background.png'
+import { MenuView } from '@react-native-menu/menu';
+
 
 const ChatScreen = ({ navigation }) => {
     const { socket } = useContext(ChatContext)
@@ -16,16 +18,30 @@ const ChatScreen = ({ navigation }) => {
           headerShown,
             headerRight: () => (
                 <View style={{flexDirection: 'row'}}>
-                  <TouchableOpacity onPress={() => navigation.navigate('ChatContactScreen')}>
-                    <View style={{ marginRight : 20 }}>
-                      <Icon name="plus" color="gray" size={18} />
-                    </View>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setheaderShown(false)}>
+                  <TouchableOpacity onPress={() => setheaderShown(false)}>
+                      <View style={{ marginRight : 20 }}>
+                        <Icon name="search" color="#fff" size={18} />
+                      </View>
+                  </TouchableOpacity>
+
+                  <MenuView
+                    title="Menu Title"
+                    onPressAction={({ nativeEvent }) => {
+                      if(nativeEvent.event === 'kontak'){
+                        navigation.navigate('ChatContactScreen')
+                      }
+                    }}
+                    actions={[
+                      {
+                        id: 'kontak',
+                        title: 'Kontak',
+                      },
+                    ]}
+                  >
                     <View style={{ marginRight : 10 }}>
-                      <Icon name="search" color="gray" size={18} />
+                      <Icon name="plus" color="#fff" size={18} />
                     </View>
-                </TouchableOpacity>
+                  </MenuView>
                 </View>
               ),
         })
