@@ -1,4 +1,4 @@
-package com.chatapp;
+package com.chatapp.apriadi;
 
 import com.facebook.react.ReactActivity;
 
