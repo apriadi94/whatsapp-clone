@@ -12,16 +12,34 @@ const Stack = createStackNavigator();
 const ChatStack = ({navigation}) => {
   const { user, loadingAuth } = useContext(AuthContext)
 
+  const optionsStyle = {
+      headerStyle: {
+          backgroundColor: '#075E55',
+          shadowOffset: {
+              width: 0,
+              height: 2,
+          }
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          textShadowColor: 'rgba(0, 0, 0, 0.75)',
+          textShadowOffset: {width: -1, height: 1},
+          textShadowRadius: 10
+        }
+  }
+
     return(
           loadingAuth ? null :
           <ChatProvider navigation={navigation} user={user}>
             <Stack.Navigator>
                 <Stack.Screen name='ChatScreen' component={ChatScreen} options={{ 
-                    title: 'Chat'
+                     ...optionsStyle,
+                    title: 'ChatsApp'
                   }}/>
 
-                <Stack.Screen name='ChatContactScreen' component={ChatContactScreen} options={{ title: 'List Kontak'}}/>
-                <Stack.Screen name='ChatContentScreen' component={ChatContentScreen} />
+                <Stack.Screen name='ChatContactScreen' component={ChatContactScreen} options={{ ...optionsStyle, title: 'List Kontak'}}/>
+                <Stack.Screen name='ChatContentScreen' component={ChatContentScreen} options={{ ...optionsStyle}}/>
                 <Stack.Screen name='ViewImageScreen' component={ViewImageScreen}/>
             </Stack.Navigator>
           </ChatProvider>
