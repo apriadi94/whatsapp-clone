@@ -9,7 +9,7 @@ import SoundPlayer from 'react-native-sound-player'
 
 
 const ChatContentScreen = ({ navigation, route }) => {
-    const { baseUrl, user, getUnreadMessage } = useContext(AuthContext)
+    const { baseUrl, user } = useContext(AuthContext)
     const { socket, userOnline } = useContext(ChatContext)
     const { to, room } = route.params;
     const [roomId, setRoomid] = useState(room.id)
@@ -60,7 +60,6 @@ const ChatContentScreen = ({ navigation, route }) => {
             setChat(message)
             setRoomid(resRoomId)
             socket.emit('READ_MESSAGE', resRoomId)
-            getUnreadMessage(user.idForUser)
             setLoadingChat(false)
 
             if(action === 'SEND' && idUser !== user.idForUser){
