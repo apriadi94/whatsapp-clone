@@ -34,6 +34,7 @@
     "react-native-sound-player": "^0.10.9",
     "react-native-splash-screen": "^3.2.0",
     "react-native-vector-icons": "^8.1.0",
+    "react-native-webrtc": "^1.89.3",
     "react-native-webview": "^11.6.4",
     "react-native-youtube": "^2.0.2",
     "remove": "^0.1.5",
