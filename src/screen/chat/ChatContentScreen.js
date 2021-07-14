@@ -6,6 +6,14 @@ import SendInputComponent from './SendInputComponent';
 import backgroundChat from '../../assets/chat-background.png'
 import Icon from 'react-native-vector-icons/FontAwesome';
 import SoundPlayer from 'react-native-sound-player'
+import Utils from '../../../Utils'
+import firestore from '@react-native-firebase/firestore';
+import { RTCPeerConnection, RTCIceCandidate, RTCSessionDescription } from 'react-native-webrtc'
+
+import TalkingComponent from '../video-call/component/TalkingComponent'
+import IncommingCallComponent from '../video-call/component/IncommingCallComponent'
+
+const configuration = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
 
 
 const ChatContentScreen = ({ navigation, route }) => {
@@ -18,12 +26,22 @@ const ChatContentScreen = ({ navigation, route }) => {
     const [OnPageSearch, setOnPageSearch] = useState(null)
     const [OnIndexSerach, setOnIndexSearch] = useState(0)
     const [isTyping, setIsTyping] = useState(false)
+    const [headerShown, setHeaderShown] = useState(true)
 
     const scrollViewRef = useRef();
+
+    const [localStream, setLocalStream] = useState()
+    const [remoteStream, setRemoteStream] = useState()
+    const [gettingCall, setGettingCall] = useState(false)
+
+    const pc = useRef()
+    const connecting = useRef(false)
+
 
 
     useEffect(() => {
         navigation.setOptions({
+            headerShown,
             headerLeft: () => (
                 <TouchableOpacity onPress={() => navigation.navigate(roomId ? 'ChatScreen' : 'ChatContactScreen')}>
                     <View style={{ marginLeft : 25 }}>
@@ -53,7 +71,7 @@ const ChatContentScreen = ({ navigation, route }) => {
                 </View>
             ),
             headerRight: () => (
-                <TouchableOpacity onPress={() => navigation.navigate('VideoCallScreen')}>
+                <TouchableOpacity onPress={create}>
                     <View style={{ marginRight : 10 }}>
                       <Icon name="video-camera" color="white" size={18} />
                     </View>
@@ -88,14 +106,173 @@ const ChatContentScreen = ({ navigation, route }) => {
 
         Keyboard.addListener("keyboardDidShow", _keyboardDidShow);
 
-        return(() => {
+        const cRef = firestore().collection('meet').doc('chatId')
+        
+        const subscribe = cRef.onSnapshot(snapshot => {
+            const data = snapshot.data()
+
+            if(pc.current && !pc.current.remoteDescription && data && data.answer){
+                pc.current.setRemoteDescription(new RTCSessionDescription(data.answer))
+            }
+
+            if(data && data.offer && !connecting.current){
+                setGettingCall(true)
+            }
+        })
+
+        const subscribeDelete = cRef.collection('callee').onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+                if(change.type == 'removed'){
+                    hangup()
+                }
+            })
+        })
+
+        return () => {
             socket.removeAllListeners("MESSAGE_SENT");
             Keyboard.removeListener("keyboardDidShow", _keyboardDidShow);
-        })
-    }, [isTyping, roomId, userOnline])
+            subscribe()
+            subscribeDelete()
+        }
+    }, [isTyping, roomId, userOnline, headerShown])
 
 
     const _keyboardDidShow = () => scrollViewRef.current.scrollToEnd({animated: true});
+
+    const setupWebrtc = async () => {
+        pc.current = new RTCPeerConnection(configuration)
+
+        const stream = await Utils.getStream()
+        if(stream){
+            setLocalStream(stream)
+            pc.current.addStream(stream)
+        }
+
+        pc.current.onaddstream = (event) => {
+            setRemoteStream(event.stream)
+        }
+    }
+    const create = async () => {
+        setHeaderShown(false)
+        connecting.current = true
+        await setupWebrtc();
+
+        const cRef = firestore().collection("meet").doc('chatId')
+        collectIceCandidates(cRef, "caller", "callee")
+
+        if(pc.current){
+            const offer = await pc.current.createOffer();
+            pc.current.setLocalDescription(offer)
+
+            const cWithOffer = {
+                offer: {
+                    type: offer.type,
+                    sdp: offer.sdp
+                }
+            }
+
+            cRef.set(cWithOffer)
+        }
+    }
+    const join = async () => {
+        connecting.current = true
+        setGettingCall(false)
+        setHeaderShown(false)
+
+        const cRef = firestore().collection('meet').doc('chatId')
+        const offer = (await cRef.get()).data()?.offer
+
+        if(offer){
+            await setupWebrtc()
+
+            collectIceCandidates(cRef, "callee", "caller")
+
+            if(pc.current){
+                pc.current.setRemoteDescription(new RTCSessionDescription(offer))
+
+                const answer = await pc.current.createAnswer()
+                pc.current.setLocalDescription(answer)
+                const cWithAnswer = {
+                    answer: {
+                        type: answer.type,
+                        sdp: answer.sdp
+                    }
+                }
+                cRef.update(cWithAnswer)
+            }
+        }
+    }
+    const hangup = async () => {
+        setGettingCall(false)
+        connecting.current = false
+        streamCleanUp()
+        firestoreCleanUp()
+        if(pc.current){
+            pc.current.close()
+        }
+        setHeaderShown(true)
+    }
+
+    const streamCleanUp = async () => {
+        if(localStream){
+            localStream.getTracks().forEach((t) => t.stop())
+            localStream.release()
+        }
+        setLocalStream(null)
+        setRemoteStream(null)
+    }
+
+    const firestoreCleanUp = async () => {
+        const cRef = firestore().collection('meet').doc('chatId')
+
+        if(cRef){
+            const calleeCandidate = await cRef.collection('callee').get()
+            calleeCandidate.forEach(async (candidate) => {
+                await candidate.ref.delete()
+            })
+
+            const callerCandidate = await cRef.collection('caller').get()
+            callerCandidate.forEach(async (candidate) => {
+                await candidate.ref.delete()
+            })
+
+            cRef.delete()
+        }
+    }
+
+    const collectIceCandidates = async (cRef, localName, remoteName) => {
+        const candidateCollection = cRef.collection(localName)
+        if(pc.current){
+            pc.current.onicecandidate = (event) => {
+                if(event.candidate) {
+                    candidateCollection.add(event.candidate)
+                }
+            }
+        }
+
+        cRef.collection(remoteName).onSnapshot(snapshot => {
+            snapshot.docChanges().forEach((change) => {
+                if(change.type == 'added'){
+                    const candidate = new RTCIceCandidate(change.doc.data())
+                    pc.current?.addIceCandidate(candidate)
+                }
+            })
+        })
+    }
+
+    if(gettingCall){
+        return <IncommingCallComponent hangup={hangup} join={join}/>
+    }
+
+    if(localStream){
+        return(
+            <TalkingComponent
+                hangup={hangup}
+                localStream={localStream}
+                remoteStream={remoteStream}
+            />
+        )
+    }
 
     return(
            <ImageBackground source={backgroundChat} style={{flex : 1}}>
